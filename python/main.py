@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
-from models import Ingrediente
-from schemas import IngredienteCreate
+from models import Ingrediente as IngredienteModel
+from schemas import IngredienteCreate, Ingrediente
 from sqlalchemy.exc import SQLAlchemyError
+from typing import List
 
 Base.metadata.create_all(bind=engine)
 
@@ -29,6 +30,17 @@ def criar_ingrediente(ingrediente: IngredienteCreate, db: Session = Depends(get_
         db.refresh(novo)
         return {"mensagem": "Ingrediente criado com sucesso!", "id": novo.id, "nome": novo.nome, "unidade": novo.unidade}
 
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro inesperado: {e}")
+
+
+@app.get("/ingredientes/", response_model=List[Ingrediente])
+def listar_ingredientes(db: Session = Depends(get_db)):
+    try:
+        ingredientes = db.query(IngredienteModel).all()
+        return ingredientes
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
     except Exception as e:
