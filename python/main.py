@@ -27,7 +27,7 @@ def criar_ingrediente(ingrediente: IngredienteCreate, db: Session = Depends(get_
         db.add(novo)
         db.commit()
         db.refresh(novo)
-        return {"mensagem": "Ingrediente criado com sucesso!", "id": novo.id}
+        return {"mensagem": "Ingrediente criado com sucesso!", "id": novo.id, "nome": novo.nome, "unidade": novo.unidade}
 
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
