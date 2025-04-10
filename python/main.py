@@ -1,37 +1,35 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
 from models import Ingrediente
+from schemas import IngredienteCreate
 from sqlalchemy.exc import SQLAlchemyError
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-@app.post("/ingredientes/")
-async def criar_ingrediente(request: Request):
+def get_db():
     try:
-        dados = await request.json()
-        nome = dados.get("nome")
-        unidade = dados.get("unidade")
-
-        if not nome or not unidade:
-            return {"erro": "Nome e unidade são obrigatórios."}
-
         db = SessionLocal()
-
-        ingrediente_existente = db.query(Ingrediente).filter(Ingrediente.nome == nome).first()
-        if ingrediente_existente:
-            return {"erro": "Ingrediente já existe."}
-
-        novo_ingrediente = Ingrediente(nome=nome, unidade=unidade)
-        db.add(novo_ingrediente)
-        db.commit()
-        db.refresh(novo_ingrediente)
+        yield db
+    finally:
         db.close()
 
-        return {"mensagem": "Ingrediente criado com sucesso!", "ingrediente": {"id": novo_ingrediente.id, "nome": novo_ingrediente.nome, "unidade": novo_ingrediente.unidade}}
+@app.post("/ingredientes/")
+def criar_ingrediente(ingrediente: IngredienteCreate, db: Session = Depends(get_db)):
+    try:
+        existente = db.query(Ingrediente).filter(Ingrediente.nome == ingrediente.nome).first()
+        if existente:
+            raise HTTPException(status_code=400, detail="Ingrediente já existe.")
+
+        novo = Ingrediente(nome=ingrediente.nome, unidade=ingrediente.unidade)
+        db.add(novo)
+        db.commit()
+        db.refresh(novo)
+        return {"mensagem": "Ingrediente criado com sucesso!", "id": novo.id}
 
     except SQLAlchemyError as e:
-        return {"erro": f"Erro no banco de dados: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
     except Exception as e:
-        return {"erro": f"Erro inesperado: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Erro inesperado: {e}")
