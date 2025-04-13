@@ -9,3 +9,7 @@ class Ingrediente(IngredienteCreate):
 
     class Config:
         orm_mode = True
+
+class IngredienteUpdate(BaseModel):
+    nome: str
+    unidade: str
