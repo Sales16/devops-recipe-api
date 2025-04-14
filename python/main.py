@@ -20,15 +20,15 @@ def get_db():
 @app.post("/ingredientes/")
 def criar_ingrediente(ingrediente: IngredienteCreate, db: Session = Depends(get_db)):
     try:
-        existente = db.query(Ingrediente).filter(Ingrediente.nome == ingrediente.nome).first()
-        if existente:
+        ingrediente_existente = db.query(IngredienteModel).filter(IngredienteModel.nome == ingrediente.nome).first()
+        if ingrediente_existente:
             raise HTTPException(status_code=400, detail="Ingrediente já existe.")
 
-        novo = Ingrediente(nome=ingrediente.nome, unidade=ingrediente.unidade)
-        db.add(novo)
+        novo_ingrediente = IngredienteModel(nome=ingrediente.nome, unidade=ingrediente.unidade)
+        db.add(novo_ingrediente)
         db.commit()
-        db.refresh(novo)
-        return {"mensagem": "Ingrediente criado com sucesso!", "id": novo.id, "nome": novo.nome, "unidade": novo.unidade}
+        db.refresh(novo_ingrediente)
+        return {"mensagem": "Ingrediente criado com sucesso!", "id": novo_ingrediente.id, "nome": novo_ingrediente.nome, "unidade": novo_ingrediente.unidade}
 
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
@@ -71,3 +71,22 @@ def atualizar_ingrediente(ingrediente_id: int, dados: IngredienteUpdate, db: Ses
         raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro inesperado: {e}")    
+    
+
+@app.delete("/ingredientes/{ingrediente_id}")
+def deletar_ingrediente(ingrediente_id: int, db: Session = Depends(get_db)):
+    try:
+        ingrediente = db.query(IngredienteModel).filter(IngredienteModel.id == ingrediente_id).first()
+
+        if not ingrediente:
+            raise HTTPException(status_code=404, detail="Ingrediente não encontrado.")
+
+        db.delete(ingrediente)
+        db.commit()
+
+        return {"mensagem": f"Ingrediente com ID {ingrediente_id} deletado com sucesso!"}
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro inesperado: {e}")
