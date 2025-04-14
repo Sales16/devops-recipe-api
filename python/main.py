@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
 from models import Ingrediente as IngredienteModel
 from schemas import IngredienteCreate, Ingrediente, IngredienteUpdate
+from schemas import ReceitaCreate, Receita, ReceitaIngredienteCreate
+from models import Receita as ReceitaModel, ReceitaIngrediente as ReceitaIngredienteModel
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 
@@ -17,6 +19,7 @@ def get_db():
     finally:
         db.close()
 
+# CRUD de Ingredientes
 @app.post("/ingredientes/")
 def criar_ingrediente(ingrediente: IngredienteCreate, db: Session = Depends(get_db)):
     try:
@@ -85,6 +88,36 @@ def deletar_ingrediente(ingrediente_id: int, db: Session = Depends(get_db)):
         db.commit()
 
         return {"mensagem": f"Ingrediente com ID {ingrediente_id} deletado com sucesso!"}
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro inesperado: {e}")
+
+
+@app.post("/receitas/", response_model=Receita)
+def criar_receita(receita: ReceitaCreate, db: Session = Depends(get_db)):
+    try:
+        nova_receita = ReceitaModel(
+            nome=receita.nome,
+            modo_preparo=receita.modo_preparo
+        )
+        db.add(nova_receita)
+        db.commit()
+        db.refresh(nova_receita)
+
+        for item in receita.ingredientes:
+            relacao = ReceitaIngredienteModel(
+                receita_id=nova_receita.id,
+                ingrediente_id=item.ingrediente_id,
+                quantidade=item.quantidade
+            )
+            db.add(relacao)
+
+        db.commit()
+        db.refresh(nova_receita)
+
+        return nova_receita
 
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Erro no banco: {e}")
