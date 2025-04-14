@@ -42,3 +42,6 @@ class Receita(ReceitaBase):
 
     class Config:
         orm_mode = True
+
+class ReceitaUpdate(ReceitaBase):
+    ingredientes: List[ReceitaIngredienteCreate]
