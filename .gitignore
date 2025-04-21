@@ -9,3 +9,5 @@ bin/
 obj/
 *.dll
 *.exe
+*.db-shm
+*.db-wal

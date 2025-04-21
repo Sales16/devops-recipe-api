@@ -24,7 +24,7 @@ Este repositório contém duas versões de uma API para gerenciamento de receita
 - SQLite
 - Pydantic
 - Uvicorn
-- 
+  
 ## Como rodar
 
 ### Versão C#
@@ -42,7 +42,7 @@ dotnet run
 ```
 3. Acesse no navegador:
 ```bash
-https://localhost:5007/swagger
+http//localhost:5007/swagger
 ```
 
 --- 

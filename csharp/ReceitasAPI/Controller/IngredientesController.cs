@@ -17,33 +17,36 @@ namespace ReceitasAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Ingrediente>>> GetIngredientes()
+        public async Task<IActionResult> GetIngredientes()
         {
-            return await _context.Ingredientes.ToListAsync();
+            var ingredientes = await _context.Ingredientes.ToListAsync();
+            return Ok(new { message = $"Foram encontrados {ingredientes.Count} ingredientes.", data = ingredientes });
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Ingrediente>> GetIngrediente(int id)
+        public async Task<IActionResult> GetIngrediente(int id)
         {
             var ingrediente = await _context.Ingredientes.FindAsync(id);
             if (ingrediente == null)
-                return NotFound();
-            return ingrediente;
+                return NotFound(new { message = $"Ingrediente com id {id} não encontrado." });
+
+            return Ok(new { message = $"Ingrediente com id {id} encontrado.", data = ingrediente });
         }
 
         [HttpPost]
-        public async Task<ActionResult<Ingrediente>> PostIngrediente(Ingrediente ingrediente)
+        public async Task<IActionResult> PostIngrediente(Ingrediente ingrediente)
         {
             _context.Ingredientes.Add(ingrediente);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetIngrediente), new { id = ingrediente.Id }, ingrediente);
+
+            return CreatedAtAction(nameof(GetIngrediente), new { id = ingrediente.Id }, new { message = $"Ingrediente criado com sucesso com id {ingrediente.Id}.", data = ingrediente });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> PutIngrediente(int id, Ingrediente ingrediente)
         {
             if (id != ingrediente.Id)
-                return BadRequest();
+                return BadRequest(new { message = "ID do ingrediente não corresponde ao informado." });
 
             _context.Entry(ingrediente).State = EntityState.Modified;
 
@@ -54,12 +57,12 @@ namespace ReceitasAPI.Controllers
             catch (DbUpdateConcurrencyException)
             {
                 if (!_context.Ingredientes.Any(e => e.Id == id))
-                    return NotFound();
+                    return NotFound(new { message = $"Ingrediente com id {id} não encontrado para atualização." });
                 else
                     throw;
             }
 
-            return NoContent();
+            return Ok(new { message = $"Ingrediente com id {id} atualizado com sucesso." });
         }
 
         [HttpDelete("{id}")]
@@ -67,12 +70,12 @@ namespace ReceitasAPI.Controllers
         {
             var ingrediente = await _context.Ingredientes.FindAsync(id);
             if (ingrediente == null)
-                return NotFound();
+                return NotFound(new { message = $"Ingrediente com id {id} não encontrado para exclusão." });
 
             _context.Ingredientes.Remove(ingrediente);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { message = $"Ingrediente com id {id} deletado com sucesso." });
         }
     }
 }

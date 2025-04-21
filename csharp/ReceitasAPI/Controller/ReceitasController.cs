@@ -18,8 +18,21 @@ namespace ReceitasAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Receita>> PostReceita(ReceitaCreateDTO dto)
+        public async Task<IActionResult> PostReceita(ReceitaCreateDTO dto)
         {
+            var idsIngredientes = dto.Ingredientes.Select(i => i.IngredienteId).Distinct();
+            var ingredientesExistentes = await _context.Ingredientes
+                .Where(i => idsIngredientes.Contains(i.Id))
+                .Select(i => i.Id)
+                .ToListAsync();
+
+            var ingredientesInvalidos = idsIngredientes.Except(ingredientesExistentes).ToList();
+
+            if (ingredientesInvalidos.Any())
+            {
+                return BadRequest(new { message = $"Os seguintes IngredienteId não existem: {string.Join(", ", ingredientesInvalidos)}" });
+            }
+
             var receita = new Receita
             {
                 Nome = dto.Nome,
@@ -34,11 +47,25 @@ namespace ReceitasAPI.Controllers
             _context.Receitas.Add(receita);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetReceita), new { id = receita.Id }, receita);
+            var receitaReadDto = new ReceitaReadDTO
+            {
+                Id = receita.Id,
+                Nome = receita.Nome,
+                ModoPreparo = receita.ModoPreparo,
+                Ingredientes = receita.Ingredientes.Select(i => new IngredienteReceitaReadDTO
+                {
+                    IngredienteId = i.IngredienteId,
+                    NomeIngrediente = _context.Ingredientes.Find(i.IngredienteId)?.Nome ?? "",
+                    UnidadeMedida = _context.Ingredientes.Find(i.IngredienteId)?.UnidadeMedida ?? "",
+                    Quantidade = i.Quantidade
+                }).ToList()
+            };
+
+            return CreatedAtAction(nameof(GetReceita), new { id = receita.Id }, new { message = $"Receita criada com sucesso com id {receita.Id}.", data = receitaReadDto });
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReceitaReadDTO>>> GetReceitas()
+        public async Task<IActionResult> GetReceitas()
         {
             var receitas = await _context.Receitas
                 .Include(r => r.Ingredientes)
@@ -57,20 +84,21 @@ namespace ReceitasAPI.Controllers
                     UnidadeMedida = i.Ingrediente.UnidadeMedida,
                     Quantidade = i.Quantidade
                 }).ToList()
-            });
+            }).ToList();
 
-            return Ok(result);
+            return Ok(new { message = $"Foram encontradas {result.Count} receitas.", data = result });
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ReceitaReadDTO>> GetReceita(int id)
+        public async Task<IActionResult> GetReceita(int id)
         {
             var r = await _context.Receitas
                 .Include(r => r.Ingredientes)
                     .ThenInclude(ir => ir.Ingrediente)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (r == null) return NotFound();
+            if (r == null)
+                return NotFound(new { message = $"Receita com id {id} não encontrada." });
 
             var dto = new ReceitaReadDTO
             {
@@ -86,7 +114,7 @@ namespace ReceitasAPI.Controllers
                 }).ToList()
             };
 
-            return Ok(dto);
+            return Ok(new { message = $"Receita com id {id} encontrada.", data = dto });
         }
 
         [HttpPut("{id}")]
@@ -97,7 +125,20 @@ namespace ReceitasAPI.Controllers
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (receita == null)
-                return NotFound();
+                return NotFound(new { message = $"Receita com id {id} não encontrada." });
+
+            var idsIngredientes = dto.Ingredientes.Select(i => i.IngredienteId).Distinct();
+            var ingredientesExistentes = await _context.Ingredientes
+                .Where(i => idsIngredientes.Contains(i.Id))
+                .Select(i => i.Id)
+                .ToListAsync();
+
+            var ingredientesInvalidos = idsIngredientes.Except(ingredientesExistentes).ToList();
+
+            if (ingredientesInvalidos.Any())
+            {
+                return BadRequest(new { message = $"Os seguintes IngredienteId não existem: {string.Join(", ", ingredientesInvalidos)}" });
+            }
 
             receita.Nome = dto.Nome;
             receita.ModoPreparo = dto.ModoPreparo;
@@ -112,7 +153,7 @@ namespace ReceitasAPI.Controllers
 
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { message = $"Receita com id {id} atualizada com sucesso." });
         }
 
         [HttpDelete("{id}")]
@@ -123,12 +164,12 @@ namespace ReceitasAPI.Controllers
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (receita == null)
-                return NotFound();
+                return NotFound(new { message = $"Receita com id {id} não encontrada para exclusão." });
 
             _context.Receitas.Remove(receita);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { message = $"Receita com id {id} deletada com sucesso." });
         }
     }
 }
