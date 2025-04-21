@@ -42,7 +42,7 @@ dotnet run
 ```
 3. Acesse no navegador:
 ```bash
-http//localhost:5007/swagger
+http://localhost:5007/swagger
 ```
 
 --- 
