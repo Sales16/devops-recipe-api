@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from database import Base, engine
-from models import *  # garante criação das tabelas
+from models import * 
 from crud.ingredientes import router as ingredientes_router
 from crud.receitas import router as receitas_router
 
