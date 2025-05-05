@@ -11,3 +11,9 @@ obj/
 *.exe
 *.db-shm
 *.db-wal
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+.env
