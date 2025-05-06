@@ -4,7 +4,7 @@ using ReceitasAPI.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=receitas.db"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 
